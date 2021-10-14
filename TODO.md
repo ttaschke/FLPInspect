@@ -1,0 +1,6 @@
+- Progress bar
+- Fix high CPU usage
+- Warnings and errors are ignored by `GUIHandler` if verbose mode is not enabled
+- Tooltips are a mess, they appear randomly. They are best disabled.
+- Tests
+- And a lot more... showing `DataEvent` children (instead of a byte array)

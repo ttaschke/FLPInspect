@@ -1,0 +1,39 @@
+site_name: FLPInspect
+site_url: https://flpinspect.rtfd.io/
+site_description: A GUI tool to inspect the structure of an FLP
+site_author: demberto
+repo_name: demberto/FLPInspect
+repo_url: https://github.com/demberto/FLPInspect/
+copyright: (c) demberto 2021
+nav:
+  - Overview: index.md
+  - Installation: installation.md
+  - Screenshots: screenshots.md
+  - Issues: https://github.com/demberto/FLPInspect/issues
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+markdown_extensions:
+  - admonition
+plugins:
+  - search
+  - autorefs
+  - mike
+  - mkdocstrings:
+      watch:
+        - flpinspect
+extra:
+  version:
+    provider: mike
