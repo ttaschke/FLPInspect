@@ -5,9 +5,8 @@ import tkinter.filedialog as tkfiledlg
 import tkinter.messagebox as tkmsgbox
 from tkinter.scrolledtext import ScrolledText
 
-from pyflp import Parser
-from pyflp.event import Event, ByteEvent, WordEvent, DWordEvent, TextEvent
-from pyflp.utils import DATA_TEXT_EVENTS
+import pyflp
+from pyflp._base import EventBase, ByteEventBase, WordEventBase, DWordEventBase, StrEventBase, NEW_TEXT_IDS
 
 from .constants import (
     COL0_WIDTH,
@@ -208,27 +207,27 @@ class FLPInspector(tk.Tk):
         self.mainloop()
 
     @staticmethod
-    def get_event_value(ev: Event) -> str:
+    def get_event_value(ev: EventBase) -> str:
         """The value to display in 'Value' column."""
-        if isinstance(ev, ByteEvent):
+        if isinstance(ev, ByteEventBase):
             v = ev.to_int8()
             if v < 0:
                 i8 = v
                 u8 = ev.to_uint8()
                 v = f"{i8} / {u8}"
-        elif isinstance(ev, WordEvent):
+        elif isinstance(ev, WordEventBase):
             v = ev.to_int16()
             if v < 0:
                 i16 = v
                 u16 = ev.to_uint16()
                 v = f"{i16} / {u16}"
-        elif isinstance(ev, DWordEvent):
+        elif isinstance(ev, DWordEventBase):
             v = ev.to_int32()
             if v < 0:
                 i32 = v
                 u32 = ev.to_uint32()
                 v = f"{i32} / {u32}"
-        elif isinstance(ev, TextEvent):
+        elif isinstance(ev, StrEventBase):
             v = ev.to_str()
         else:
             v = str(tuple(ev.data))
@@ -298,34 +297,37 @@ class FLPInspector(tk.Tk):
 
     def populate(self, file: pathlib.Path):
         gui_handler = GUIHandler(self.console)
-        parser = Parser(verbose=self.verbose, handlers=[gui_handler])
+        # parser = Parser(verbose=self.verbose, handlers=[gui_handler])
         self.project = None
-        if file.suffix == ".zip":
-            # TODO Parser.get_events for ZIPs
-            self.project = parser.parse_zip(file)
-        else:
-            try:
-                self.project = parser.parse(file)
-            except Exception as e:
-                # * Failsafe mode, only 'Event View' will work
-                self.console.configure(state="normal")
-                self.console.insert(
-                    "end",
-                    "\n\nFailed to parse properly; only events will be shown. "
-                    f"\nException details: {e}",
-                    "ERROR",
-                )
-                self.console.configure(state="disabled")
-                self.events = parser.get_events(file)
 
-                # Remove extra tabs
-                # * Technically I can still, provide these infos
-                # * but that better be done in PyFLP itself.
-                self.nb.forget(self.cf)
-                self.nb.forget(self.pf)
-                self.nb.forget(self.af)
-            else:
-                self.events = self.project.events
+        # Current version of PyFLP does not parse ZIPs
+        #if file.suffix == ".zip":
+        #    # TODO Parser.get_events for ZIPs
+        #    self.project = parser.parse_zip(file)
+        #else
+
+        try:
+            self.project = pyflp.parse(file)
+        except Exception as e:
+            # * Failsafe mode, only 'Event View' will work
+            self.console.configure(state="normal")
+            self.console.insert(
+                "end",
+                "\n\nFailed to parse properly; only events will be shown. "
+                f"\nException details: {e}",
+                "ERROR",
+            )
+            self.console.configure(state="disabled")
+            self.events = parser.get_events(file)
+
+            # Remove extra tabs
+            # * Technically I can still, provide these infos
+            # * but that better be done in PyFLP itself.
+            self.nb.forget(self.cf)
+            self.nb.forget(self.pf)
+            self.nb.forget(self.af)
+        else:
+            self.events = self.project._collect_events()
 
         def clb():
             """Populate 'Channels' listbox."""
@@ -411,10 +413,10 @@ class FLPInspector(tk.Tk):
                 try:
                     value = self.etv.item(child, "values")[2]
                     ev = self.project.events[idx]
-                    if ev.id >= 208 and ev.id not in DATA_TEXT_EVENTS:
+                    if ev.id >= 208 and ev.id not in NEW_TEXT_IDS:
                         # "(100, 200)" -> b'd\xc8'
                         buf = bytes(map(int, value.strip("()").split(", ")))
-                    elif ev.id in range(192, 208) or ev.id in DATA_TEXT_EVENTS:
+                    elif ev.id in range(192, 208) or ev.id in NEW_TEXT_IDS:
                         buf = value
                     elif ev.id <= 192:
                         arr = value.split("/")
